@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
+	"net"
 	"os"
 	"time"
 )
@@ -22,15 +23,27 @@ func init() {
 
 func main() {
 
-	log.Printf("Causal Broadcast Simulator\n")
+	fmt.Println()
+	log.Println("Causal Broadcast Simulator\n")
 
-	// bind
+	log.Println("Enter the port number the process should bind to: ")
+	var port string
+	fmt.Scanf("%s", &port)
+	port = ":" + port
 
-	sc := bufio.NewScanner(os.Stdin)
-	sc.Split(bufio.ScanLines)
+	// listen
+	_, err := net.Listen("tcp", port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+		os.Exit(1)
+	}
 
-	log.Printf("Press enter when all processes are online.")
+	log.Println("Successfully bound to ", port)
 
-	proceed := sc.Text()
+	log.Println("Press enter when all processes are online.")
+
+	var input rune
+
+	fmt.Scanf("%c", &input)
 
 }
