@@ -46,31 +46,31 @@ func main() {
 
 	fmt.Printf("Enter the port numbers of the other %v processes: \n", (n_proc - 1))
 
-	ports := make([]string, n_proc-1)
+	addresses := make([]string, n_proc-1)
 
 	for i := 0; i < n_proc-1; i++ {
-		fmt.Scan(&ports[i])
-		ports[i] = ":" + ports[i]
+		fmt.Scan(&addresses[i])
+		addresses[i] = "localhost:" + addresses[i] + "/"
 	}
 
-	connxns := make([]net.Conn, n_proc-1)
+	// connxns := make([]net.Conn, n_proc-1)
 
-	for i := 0; i < n_proc-1; i++ {
+	// for i := 0; i < n_proc-1; i++ {
 
-		serverTcpAddr, err := net.ResolveTCPAddr("tcp", ports[i])
-		CheckError(err)
+	// 	serverTcpAddr, err := net.ResolveTCPAddr("tcp", ports[i])
+	// 	CheckError(err)
 
-		conn, err := net.DialTCP("tcp", nil, serverTcpAddr)
-		CheckError(err)
+	// 	conn, err := net.DialTCP("tcp", nil, serverTcpAddr)
+	// 	CheckError(err)
 
-		connxns[i] = conn
-	}
+	// 	connxns[i] = conn
+	// }
 
-	fmt.Println("Successfully connected to all processes.")
+	// fmt.Println("Successfully connected to all processes.")
 
-	clock := InitializeClock(n_proc)
+	clock := InitializeClock(n_proc, pid)
 
-	clock.ListenForMessages()
-	clock.CreateAndSendMessages()
+	clock.HandleMessageReception()
+	clock.CreateAndSendMessages(addresses)
 
 }
