@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"math/rand"
 	"net"
@@ -44,13 +44,25 @@ func (vclock *Vector_Clock) CreateAndSendMessages(connxns []net.Conn) {
 
 		vclock.Causal_time[pid] = vclock.Causal_time[pid] + 1 // increment self clock to record send event
 
-		to_send := fmt.Sprintf("%d, ui", username, "broadcast", msg_str)
+		to_send := make(map[string]interface{})
+		to_send["pid"] = vclock.PID
+		to_send["clock"] = vclock.Causal_time
+
+		// Marshal the map into a slice of bytes.
+		to_send_bytes, err := json.Marshal(to_send)
+		CheckError(err)
+
+		log.Printf("\nBroadcasting vector clock with values ", string(to_send_bytes), "\n")
 
 		for i = 0; i < vclock.n_proc-1; i++ {
+
+			connxn[i].Write(to_send_bytes)
 
 		}
 
 		vclock.ClockMutex.Unlock()
+
+		log.Printf("Successfully broadcasted.\n")
 
 	}
 
