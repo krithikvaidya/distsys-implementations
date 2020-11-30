@@ -23,6 +23,10 @@ func main() {
 
 	fmt.Println("\nCausal Broadcast Simulator\n")
 
+	fmt.Printf("Enter the process id: ")
+	var pid int
+	fmt.Scanf("%d", &pid)
+
 	fmt.Printf("Enter the port number the process should bind to: ")
 	var port string
 	fmt.Scanf("%s", &port)
@@ -60,8 +64,8 @@ func main() {
 		CheckError(err)
 
 		connxns[i] = conn
-
-		fmt.Println("Success")
 	}
+
+	fmt.Println("Successfully connected to all processes.")
 
 }
