@@ -68,4 +68,9 @@ func main() {
 
 	fmt.Println("Successfully connected to all processes.")
 
+	clock := InitializeClock(n_proc)
+
+	clock.ListenForMessages()
+	clock.CreateAndSendMessages()
+
 }
