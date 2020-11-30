@@ -3,10 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
-	"os"
 	"time"
 )
 
@@ -23,27 +21,47 @@ func init() {
 
 func main() {
 
-	fmt.Println()
-	log.Println("Causal Broadcast Simulator\n")
+	fmt.Println("\nCausal Broadcast Simulator\n")
 
-	log.Println("Enter the port number the process should bind to: ")
+	fmt.Printf("Enter the port number the process should bind to: ")
 	var port string
 	fmt.Scanf("%s", &port)
 	port = ":" + port
 
 	// listen
 	_, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-		os.Exit(1)
-	}
+	CheckError(err)
 
-	log.Println("Successfully bound to ", port)
+	fmt.Println("Successfully bound to", port, "\n")
 
-	log.Println("Press enter when all processes are online.")
+	fmt.Println("Press enter when all processes are online.")
 
 	var input rune
 
 	fmt.Scanf("%c", &input)
+
+	fmt.Printf("Enter the port numbers of the other %v processes: \n", (n_proc - 1))
+
+	ports := make([]string, n_proc-1)
+
+	for i := 0; i < n_proc-1; i++ {
+		fmt.Scan(&ports[i])
+		ports[i] = ":" + ports[i]
+	}
+
+	connxns := make([]net.Conn, n_proc-1)
+
+	for i := 0; i < n_proc-1; i++ {
+
+		serverTcpAddr, err := net.ResolveTCPAddr("tcp", ports[i])
+		CheckError(err)
+
+		conn, err := net.DialTCP("tcp", nil, serverTcpAddr)
+		CheckError(err)
+
+		connxns[i] = conn
+
+		fmt.Println("Success")
+	}
 
 }
