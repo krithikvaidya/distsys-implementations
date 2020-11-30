@@ -27,6 +27,8 @@ func main() {
 	var pid int
 	fmt.Scanf("%d", &pid)
 
+	clock := InitializeClock(n_proc, pid)
+
 	fmt.Printf("Enter the port number the process should bind to: ")
 	var port string
 	fmt.Scanf("%s", &port)
@@ -38,6 +40,8 @@ func main() {
 	// listen
 	listener, err := net.ListenTCP("tcp", tcpAddr)
 	CheckError(err)
+
+	go clock.CreateMessageListeners(listener)
 
 	fmt.Println("Successfully bound to", port, "\n")
 
@@ -71,9 +75,6 @@ func main() {
 
 	fmt.Println("Successfully connected to all processes.\n")
 
-	clock := InitializeClock(n_proc, pid)
-
-	go clock.CreateMessageListeners(listener)
 	go clock.CreateAndSendMessages(connxns)
 
 	ch := make(chan int)

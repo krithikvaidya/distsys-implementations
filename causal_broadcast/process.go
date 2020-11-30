@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net"
@@ -28,23 +29,36 @@ func InitializeClock(n_process, pid int) *Vector_Clock {
 
 func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 
-	// for {
+	for {
 
-	// 	msg := make([]byte, 256)
-	// 	_, err := io.ReadFull(conn, msg) // read 256 bytes message
+		msg := make([]byte, 256)
+		_, err := io.ReadFull(conn, msg) // read 256 bytes message
 
-	// 	if err != nil {
-	// 		// todo
-	// 		os.Exit(1)
-	// 	}
+		if err != nil {
+			// todo
+			os.Exit(1)
+		}
 
-	// 	for i := 255; i >= 0; i-- {
+		msg_str := string(msg)
 
-	// 		if (msg[i] != '')
+		var i int
+		for i = 255; i >= 0; i-- {
 
-	// 	}
+			if msg_str[i] != ' ' {
+				break
+			}
 
-	// }
+		}
+
+		msg = msg[:i+1]
+
+		var rcvd_msg map[string]interface{}
+
+		json.Unmarshal(msg, &rcvd_msg)
+
+		log.Printf("Message rcvd from PID: %v with clock %v\n", rcvd_msg["pid"], rcvd_msg["clock"])
+
+	}
 
 }
 
@@ -96,11 +110,11 @@ func (vclock *Vector_Clock) CreateAndSendMessages(connxns []net.Conn) {
 
 		log.Printf("\nBroadcasting vector clock with values %v \n", string(to_send_bytes))
 
-		// for i = 0; i < vclock.n_proc-1; i++ {
+		for i := 0; i < vclock.n_proc-1; i++ {
 
-		// 	connxn[i].Write([]byte(to_send_str))
+			connxns[i].Write([]byte(to_send_str))
 
-		// }
+		}
 
 		vclock.ClockMutex.Unlock()
 
