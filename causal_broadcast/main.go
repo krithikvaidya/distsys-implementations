@@ -32,8 +32,11 @@ func main() {
 	fmt.Scanf("%s", &port)
 	port = ":" + port
 
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", port)
+	CheckError(err)
+
 	// listen
-	_, err := net.Listen("tcp", port)
+	listener, err := net.ListenTCP("tcp", tcpAddr)
 	CheckError(err)
 
 	fmt.Println("Successfully bound to", port, "\n")
@@ -66,11 +69,14 @@ func main() {
 		connxns[i] = conn
 	}
 
-	fmt.Println("Successfully connected to all processes.")
+	fmt.Println("Successfully connected to all processes.\n")
 
 	clock := InitializeClock(n_proc, pid)
 
-	clock.HandleMessageReception()
-	clock.CreateAndSendMessages(ports)
+	go clock.CreateMessageListeners(listener)
+	go clock.CreateAndSendMessages(connxns)
+
+	ch := make(chan int)
+	<-ch
 
 }
