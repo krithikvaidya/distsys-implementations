@@ -141,7 +141,7 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 
 					// remove from buffer
 					vclock.Buffer = RemoveFromBuffer(vclock.Buffer, i)
-					i--
+					i = -1 // Reset i back to the start of the buffer, since buffered messages are not ordered in any specific way
 				}
 
 			}
