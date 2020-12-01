@@ -64,14 +64,14 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 		// log.Printf("Message rcvd from PID: %v with clock %v\n", rcvd_msg["pid"], rcvd_msg["clock"])
 		// log.Printf("\nrcvd msg is %v uf type %T\n", rcvd_msg, rcvd_msg)
 
-		rcvd_clock, ok := rcvd_msg["clock"]
+		rcvd_clock, _ := rcvd_msg["clock"]
 		// log.Printf("\n\nOK? : %v\n\n", ok)
 		// if !ok {
 		// 	log.Printf("got data of type %T but wanted []int", rcvd_msg["clock"])
 		// }
 
 		// log.Printf("RCVD clock %v and size %v\n", rcvd_clock, len(rcvd_clock))
-		rcvd_pid1, ok := rcvd_msg["pid"]
+		rcvd_pid1, _ := rcvd_msg["pid"]
 		// log.Printf("\n\nOK? : %v, PID %v \n\n", ok, rcvd_pid1)
 		rcvd_pid := rcvd_pid1[0]
 
@@ -107,7 +107,7 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 
 			vclock.Causal_time[rcvd_pid]++
 
-			log.Printf("Immediately delivered message from PID: %v with clock %v\n. Current value of clock is %v\n", rcvd_pid, rcvd_clock, vclock.Causal_time)
+			log.Printf(Green+"[Delivery Success]"+Reset+": Immediately delivered message from PID: %v with clock %v.\n"+Purple+"[Clock Value]"+Reset+": Current value of clock is %v\n", rcvd_pid, rcvd_clock, vclock.Causal_time)
 
 			// deliver other buffered messages ready for delivery
 
@@ -137,7 +137,7 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 
 					}
 
-					log.Printf("Delivered buffered message from PID: %v with clock %v\n. Current value of clock is %v\n", vclock.Buffer[i].Pid, vclock.Buffer[i].Clock, vclock.Causal_time)
+					log.Printf(Green+"[Delivery Success]"+Reset+": Delivered buffered message from PID: %v with clock %v.\n"+Purple+"[Clock Value]"+Reset+": Current value of clock is %v\n", vclock.Buffer[i].Pid, vclock.Buffer[i].Clock, vclock.Causal_time)
 
 					// remove from buffer
 					vclock.Buffer = RemoveFromBuffer(vclock.Buffer, i)
@@ -154,7 +154,7 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 				Clock: rcvd_clock,
 			})
 
-			log.Printf("Buffered message from PID: %v with clock %v\n.", rcvd_pid, rcvd_clock)
+			log.Printf(Blue+"[Buffered Message]"+Reset+": Buffered message from PID: %v with clock %v\n.", rcvd_pid, rcvd_clock)
 
 		}
 
@@ -175,7 +175,7 @@ func (vclock *Vector_Clock) CreateMessageListeners(listener *net.TCPListener) {
 			os.Exit(1)
 		}
 
-		log.Printf(fmt.Sprintf("Accepted an incoming connection request from [%s].", conn.RemoteAddr()))
+		log.Printf(Cyan + "[Info]" + Reset + ":" + fmt.Sprintf("Accepted an incoming connection request from [%s].", conn.RemoteAddr()))
 
 		go vclock.ListenForMessages(conn)
 
@@ -183,16 +183,18 @@ func (vclock *Vector_Clock) CreateMessageListeners(listener *net.TCPListener) {
 
 }
 
-func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send []byte) {
+func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send []byte, c chan bool) {
 
 	max := 15
 	min := 5
 
 	seconds := rand.Intn(max-min) + min
-	log.Printf("Waiting for %v seconds before sending to process with conn %v\n", seconds, conn)
+
 	time.Sleep(time.Duration(seconds) * time.Second)
 
 	conn.Write(to_send)
+
+	c <- true
 
 }
 
@@ -205,7 +207,7 @@ func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 	for {
 
 		seconds := rand.Intn(max-min) + min
-		log.Printf("Waiting for %v seconds", seconds)
+		log.Printf(Cyan+"[Info]"+Reset+": Waiting for %v seconds", seconds)
 		time.Sleep(time.Duration(seconds) * time.Second)
 
 		vclock.ClockMutex.Lock()
@@ -230,17 +232,24 @@ func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 		// to_send_str := string(to_send_bytes)
 		// to_send_str = fmt.Sprintf("%-256v", to_send_str)
 
+		log.Printf(Yellow+"[Send]"+Reset+": Broadcasting vector clock with values %v \n"+Purple+"[Clock Value]"+Reset+": Current Clock Value %v\n", string(to_send_bytes), vclock.Causal_time)
+
 		vclock.ClockMutex.Unlock()
 
-		log.Printf("\nBroadcasting vector clock with values %v \n", string(to_send_bytes))
-
+		c := make(chan bool)
 		for i := 0; i < vclock.n_proc-1; i++ {
 
-			go vclock.SendMessage(connxns[i], to_send_bytes)
+			go vclock.SendMessage(connxns[i], to_send_bytes, c)
 
 		}
 
-		log.Printf("Successfully broadcasted.\n")
+		for i := 0; i < vclock.n_proc-1; i++ {
+
+			<-c
+
+		}
+
+		log.Printf(Green+"[Success]"+Reset+": Successfully broadcasted message with clock %v\n", to_send["clock"])
 
 	}
 
