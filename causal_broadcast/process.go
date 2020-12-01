@@ -16,12 +16,19 @@ type Vector_Clock struct {
 	n_proc      int
 	PID         int
 	Causal_time []int
+	Buffer      [][]int
 	ClockMutex  sync.RWMutex
+}
+
+type BufferPair struct {
+	Pid   int
+	Clock []int
 }
 
 func InitializeClock(n_process, pid int) *Vector_Clock {
 	return &Vector_Clock{
 		Causal_time: make([]int, n_proc),
+		Buffer:      make([]BufferPair, 0, 1000), // 2d slice of len 0 and capacity 1000
 		n_proc:      n_process,
 		PID:         pid,
 	}
@@ -58,25 +65,26 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 
 		log.Printf("Message rcvd from PID: %v with clock %v\n", rcvd_msg["pid"], rcvd_msg["clock"])
 
-		vclock.ClockMutex.Lock()  // not RLock and then Lock
+		rcvd_clock, _ := rcvd_msg["clock"].([]int)
+		rcvd_pid, _ := rcvd_msg["pid"].(int)
+
+		vclock.ClockMutex.Lock() // not RLock and then Lock
 
 		immediate_deliver := true
 
-		for i := 0; i < vclock.Causal_time.Size(); i++ {
+		for i := 0; i < len(vclock.Causal_time); i++ {
 
-			if i == rcvd_msg["pid"] {
+			if i == rcvd_pid {
 
-				if vclock.Causal_time[i] != rcvd_msg["clock"][i] - 1 {
+				if vclock.Causal_time[i] != rcvd_clock[i]-1 {
 
 					// some more message(s) need to be delivered from the same sender proces
 					// delivering this message.
 					immediate_deliver = false
 					break
 
-				}
-
-				else {
-					if vclock.Causal_time[i] < rcvd_msg["clock"][i] {
+				} else {
+					if vclock.Causal_time[i] < rcvd_clock[i] {
 
 						// some more message(s) need to be delivered from other sender
 						// process(es)
@@ -89,11 +97,26 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 		}
 
 		if immediate_deliver {
-			vclock.Causal_time[rcvd_msg["pid"]]++
+
+			vclock.Causal_time[rcvd_pid]++
+
+			log.Printf("Immediately delivered message from PID: %v with clock %v\n. Current value of clock is %v\n", rcvd_pid, rcvd_clock, vclock.Causal_time)
+
+			// deliver other buffered messages ready for delivery
+
+		} else {
+
+			// buffer it
+			vclock.Buffer = vclock.Buffer.append(BufferPair{
+				Pid:   rcvd_pid,
+				Clock: rcvd_clock,
+			})
+
+			log.Printf("Buffered message from PID: %v with clock %v\n.", rcvd_pid, rcvd_clock)
+
 		}
-		else {
-			
-		}
+
+		vclock.ClockMutex.Unlock()
 
 	}
 

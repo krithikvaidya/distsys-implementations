@@ -13,3 +13,8 @@ func CheckError(err error) {
 	}
 
 }
+
+func RemoveFromBuffer(buffer []BufferPair, i int) []BufferPair {
+	buffer[len(buffer)-1], buffer[i] = buffer[i], buffer[len(buffer)-1]
+	return buffer[:len(buffer)-1]
+}
