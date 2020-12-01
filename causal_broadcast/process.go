@@ -183,7 +183,7 @@ func (vclock *Vector_Clock) CreateMessageListeners(listener *net.TCPListener) {
 
 }
 
-func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send []byte, c chan bool) {
+func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send []byte) {
 
 	max := 15
 	min := 5
@@ -193,8 +193,6 @@ func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send []byte, c chan bo
 	time.Sleep(time.Duration(seconds) * time.Second)
 
 	conn.Write(to_send)
-
-	c <- true
 
 }
 
@@ -236,20 +234,13 @@ func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 
 		vclock.ClockMutex.Unlock()
 
-		c := make(chan bool)
 		for i := 0; i < vclock.n_proc-1; i++ {
 
-			go vclock.SendMessage(connxns[i], to_send_bytes, c)
+			go vclock.SendMessage(connxns[i], to_send_bytes)
 
 		}
 
-		for i := 0; i < vclock.n_proc-1; i++ {
-
-			<-c
-
-		}
-
-		log.Printf(Green+"[Success]"+Reset+": Successfully broadcasted message with clock %v\n", to_send["clock"])
+		// log.Printf(Green+"[Success]"+Reset+": Successfully broadcasted message with clock %v\n", to_send["clock"])
 
 	}
 
