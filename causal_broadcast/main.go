@@ -75,7 +75,7 @@ func main() {
 
 	fmt.Println("Successfully connected to all processes.\n")
 
-	go clock.CreateAndSendMessages(connxns)
+	go clock.CreateMessages(connxns)
 
 	ch := make(chan int)
 	<-ch

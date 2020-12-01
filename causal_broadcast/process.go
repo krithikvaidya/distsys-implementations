@@ -58,6 +58,43 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 
 		log.Printf("Message rcvd from PID: %v with clock %v\n", rcvd_msg["pid"], rcvd_msg["clock"])
 
+		vclock.ClockMutex.Lock()  // not RLock and then Lock
+
+		immediate_deliver := true
+
+		for i := 0; i < vclock.Causal_time.Size(); i++ {
+
+			if i == rcvd_msg["pid"] {
+
+				if vclock.Causal_time[i] != rcvd_msg["clock"][i] - 1 {
+
+					// some more message(s) need to be delivered from the same sender proces
+					// delivering this message.
+					immediate_deliver = false
+					break
+
+				}
+
+				else {
+					if vclock.Causal_time[i] < rcvd_msg["clock"][i] {
+
+						// some more message(s) need to be delivered from other sender
+						// process(es)
+						immediate_deliver = false
+						break
+
+					}
+				}
+			}
+		}
+
+		if immediate_deliver {
+			vclock.Causal_time[rcvd_msg["pid"]]++
+		}
+		else {
+			
+		}
+
 	}
 
 }
@@ -81,7 +118,20 @@ func (vclock *Vector_Clock) CreateMessageListeners(listener *net.TCPListener) {
 
 }
 
-func (vclock *Vector_Clock) CreateAndSendMessages(connxns []net.Conn) {
+func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send string) {
+
+	max := 15
+	min := 5
+
+	seconds := rand.Intn(max-min) + min
+	log.Printf("Waiting for %v seconds before sending to process with conn %v\n", seconds, conn)
+	time.Sleep(time.Duration(seconds) * time.Second)
+
+	conn.Write([]byte(to_send))
+
+}
+
+func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 
 	max := 15 // max time to wait before sending message, in sec
 	min := 5
@@ -108,15 +158,15 @@ func (vclock *Vector_Clock) CreateAndSendMessages(connxns []net.Conn) {
 
 		CheckError(err)
 
+		vclock.ClockMutex.Unlock()
+
 		log.Printf("\nBroadcasting vector clock with values %v \n", string(to_send_bytes))
 
 		for i := 0; i < vclock.n_proc-1; i++ {
 
-			connxns[i].Write([]byte(to_send_str))
+			go vclock.SendMessage(connxns[i], to_send_str)
 
 		}
-
-		vclock.ClockMutex.Unlock()
 
 		log.Printf("Successfully broadcasted.\n")
 
