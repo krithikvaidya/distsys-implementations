@@ -225,7 +225,7 @@ func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 		padding_bytes := make([]byte, size)
 
 		to_send_bytes = append(to_send_bytes, padding_bytes...)
-		to_send_bytes = to_send_bytes[:256] // just to ensure capacity is 256
+		to_send_bytes = to_send_bytes[:256] // just to ensure length and capacity are 256
 
 		// to_send_str := string(to_send_bytes)
 		// to_send_str = fmt.Sprintf("%-256v", to_send_str)

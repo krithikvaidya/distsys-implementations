@@ -2,10 +2,8 @@
 
 This is a program that simulates delivery of messages between n processes, using vector clocks. This is done to guarantee
 causal delivery of messages (i.e. no causal anomalies).  
-<br>
 
 The program introduces random artificial delays in broadcasting the messages to other processes, to simulate delays in the network. The causal delivery of messages is then demonstrated, by comparing the vector clocks of the incoming message and that of the current process. Messages that do not violate causal delivery are immediately delivered, and messages from the "causal future" are buffered to be delivered later.  
-<br>
 
 When a message is delivered, the process checks the buffer if any buffered message(s) are ready for delivery, based on the updated vector clock value.
 
@@ -26,12 +24,16 @@ git clone https://github.com/krithikvaidya/distsys-implementations.git
 cd distsys-implementations/causal_broadcast
 ```
 
-- Decide the number of processes involved (n). Based on this, open (n - 1) more terminal windows and run each process:  
+- Decide the number of processes involved (n). Based on this, open (n - 1) more terminal windows and run each process (default value of n is 3):  
 ```
 go run . -n <value chose for n>
 ```
 
 - Follow the on-screen instructions
+
+## TODO:
+
+- Improve buffer checking efficiency
 
 ## Reference
 
