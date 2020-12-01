@@ -14,19 +14,14 @@ When a message is delivered, the process checks the buffer if any buffered messa
 
 ## How to Run
 
-- Clone the repo  
+- Get the module locally 
 ```
-git clone https://github.com/krithikvaidya/distsys-implementations.git
-```
-
-- Change directory  
-```
-cd distsys-implementations/causal_broadcast
+go get github.com/krithikvaidya/distsys-implementations/causal_broadcast
 ```
 
 - Decide the number of processes involved (n). Based on this, open (n - 1) more terminal windows and run each process (default value of n is 3):  
 ```
-go run . -n <value chose for n>
+go run github.com/krithikvaidya/distsys-implementations/causal_broadcast -n <value chosen for n>
 ```
 
 - Follow the on-screen instructions
