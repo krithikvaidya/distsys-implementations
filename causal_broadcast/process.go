@@ -199,7 +199,7 @@ func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send []byte) {
 func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 
 	max := 15 // max time to wait before sending message, in sec
-	min := 5
+	min := 0
 
 	// Create messages to be broadcast at random times
 	for {

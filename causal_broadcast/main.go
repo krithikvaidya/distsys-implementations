@@ -77,6 +77,9 @@ func main() {
 
 	fmt.Println("Successfully connected to all processes.\n")
 
+	fmt.Println("Press Enter when you wish to start sending messages")
+	fmt.Scanf("%c", &input)
+
 	go clock.CreateMessages(connxns)
 
 	ch := make(chan int)
