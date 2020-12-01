@@ -83,15 +83,15 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 					immediate_deliver = false
 					break
 
-				} else {
-					if vclock.Causal_time[i] < rcvd_clock[i] {
+				}
+			} else {
+				if vclock.Causal_time[i] < rcvd_clock[i] {
 
-						// some more message(s) need to be delivered from other sender
-						// process(es)
-						immediate_deliver = false
-						break
+					// some more message(s) need to be delivered from other sender
+					// process(es)
+					immediate_deliver = false
+					break
 
-					}
 				}
 			}
 		}
@@ -103,6 +103,41 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 			log.Printf("Immediately delivered message from PID: %v with clock %v\n. Current value of clock is %v\n", rcvd_pid, rcvd_clock, vclock.Causal_time)
 
 			// deliver other buffered messages ready for delivery
+
+			for i := 0; i < len(vclock.Buffer); i++ {
+
+				diff := 0
+				for j := 0; j < len(vclock.Buffer[i][1]); j++ {
+
+					if vclock.Buffer[i][1][j] > vclock.Causal_time[j] {
+
+						diff += vclock.Buffer[i][j] - vclock.Causal_time[j]
+
+					}
+
+				}
+
+				if diff == 1 { // deliver this message
+
+					for j := 0; j < len(vclock.Buffer[i][1]); j++ {
+
+						if vclock.Buffer[i][j] > vclock.Causal_time[j] {
+
+							vclock.Causal_time[j]++
+							break
+
+						}
+
+					}
+
+					log.Printf("Delivered buffered message from PID: %v with clock %v\n. Current value of clock is %v\n", rcvd_pid, rcvd_clock, vclock.Causal_time)
+
+					// remove from buffer
+					vclock.Buffer = RemoveFromBuffer(vclock.Buffer, i)
+
+				}
+
+			}
 
 		} else {
 
