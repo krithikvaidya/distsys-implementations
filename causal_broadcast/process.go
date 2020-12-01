@@ -12,17 +12,17 @@ import (
 	"time"
 )
 
+type BufferPair struct {
+	Pid   int
+	Clock []int
+}
+
 type Vector_Clock struct {
 	n_proc      int
 	PID         int
 	Causal_time []int
-	Buffer      [][]int
+	Buffer      []BufferPair
 	ClockMutex  sync.RWMutex
-}
-
-type BufferPair struct {
-	Pid   int
-	Clock []int
 }
 
 func InitializeClock(n_process, pid int) *Vector_Clock {
@@ -107,21 +107,21 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 			for i := 0; i < len(vclock.Buffer); i++ {
 
 				diff := 0
-				for j := 0; j < len(vclock.Buffer[i][1]); j++ {
+				for j := 0; j < len(vclock.Buffer[i].Clock); j++ {
 
-					if vclock.Buffer[i][1][j] > vclock.Causal_time[j] {
+					if vclock.Buffer[i].Clock[j] > vclock.Causal_time[j] {
 
-						diff += vclock.Buffer[i][j] - vclock.Causal_time[j]
+						diff += vclock.Buffer[i].Clock[j] - vclock.Causal_time[j]
 
 					}
 
 				}
 
-				if diff == 1 { // deliver this message
+				if diff <= 1 { // deliver this message
 
-					for j := 0; j < len(vclock.Buffer[i][1]); j++ {
+					for j := 0; j < len(vclock.Buffer[i].Clock); j++ {
 
-						if vclock.Buffer[i][j] > vclock.Causal_time[j] {
+						if vclock.Buffer[i].Clock[j] > vclock.Causal_time[j] {
 
 							vclock.Causal_time[j]++
 							break
@@ -130,11 +130,11 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 
 					}
 
-					log.Printf("Delivered buffered message from PID: %v with clock %v\n. Current value of clock is %v\n", rcvd_pid, rcvd_clock, vclock.Causal_time)
+					log.Printf("Delivered buffered message from PID: %v with clock %v\n. Current value of clock is %v\n", vclock.Buffer[i].Pid, vclock.Buffer[i].Clock, vclock.Causal_time)
 
 					// remove from buffer
 					vclock.Buffer = RemoveFromBuffer(vclock.Buffer, i)
-
+					i--
 				}
 
 			}
@@ -142,7 +142,7 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 		} else {
 
 			// buffer it
-			vclock.Buffer = vclock.Buffer.append(BufferPair{
+			vclock.Buffer = append(vclock.Buffer, BufferPair{
 				Pid:   rcvd_pid,
 				Clock: rcvd_clock,
 			})
