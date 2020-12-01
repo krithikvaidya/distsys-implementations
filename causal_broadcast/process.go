@@ -46,27 +46,34 @@ func (vclock *Vector_Clock) ListenForMessages(conn net.Conn) {
 			os.Exit(1)
 		}
 
-		msg_str := string(msg)
-
 		var i int
 		for i = 255; i >= 0; i-- {
 
-			if msg_str[i] != ' ' {
+			if msg[i] != 0 {
 				break
 			}
 
 		}
 
 		msg = msg[:i+1]
-
-		var rcvd_msg map[string]interface{}
+		// log.Printf("Message is %v ok\n", msg)
+		var rcvd_msg map[string][]int
 
 		json.Unmarshal(msg, &rcvd_msg)
 
-		log.Printf("Message rcvd from PID: %v with clock %v\n", rcvd_msg["pid"], rcvd_msg["clock"])
+		// log.Printf("Message rcvd from PID: %v with clock %v\n", rcvd_msg["pid"], rcvd_msg["clock"])
+		// log.Printf("\nrcvd msg is %v uf type %T\n", rcvd_msg, rcvd_msg)
 
-		rcvd_clock, _ := rcvd_msg["clock"].([]int)
-		rcvd_pid, _ := rcvd_msg["pid"].(int)
+		rcvd_clock, ok := rcvd_msg["clock"]
+		// log.Printf("\n\nOK? : %v\n\n", ok)
+		// if !ok {
+		// 	log.Printf("got data of type %T but wanted []int", rcvd_msg["clock"])
+		// }
+
+		// log.Printf("RCVD clock %v and size %v\n", rcvd_clock, len(rcvd_clock))
+		rcvd_pid1, ok := rcvd_msg["pid"]
+		// log.Printf("\n\nOK? : %v, PID %v \n\n", ok, rcvd_pid1)
+		rcvd_pid := rcvd_pid1[0]
 
 		vclock.ClockMutex.Lock() // not RLock and then Lock
 
@@ -176,7 +183,7 @@ func (vclock *Vector_Clock) CreateMessageListeners(listener *net.TCPListener) {
 
 }
 
-func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send string) {
+func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send []byte) {
 
 	max := 15
 	min := 5
@@ -185,7 +192,7 @@ func (vclock *Vector_Clock) SendMessage(conn net.Conn, to_send string) {
 	log.Printf("Waiting for %v seconds before sending to process with conn %v\n", seconds, conn)
 	time.Sleep(time.Duration(seconds) * time.Second)
 
-	conn.Write([]byte(to_send))
+	conn.Write(to_send)
 
 }
 
@@ -205,16 +212,23 @@ func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 
 		vclock.Causal_time[vclock.PID] = vclock.Causal_time[vclock.PID] + 1 // increment self clock to record send event
 
-		to_send := make(map[string]interface{})
-		to_send["pid"] = vclock.PID
+		to_send := make(map[string][]int)
+		to_send["pid"] = make([]int, 1, 1)
+		to_send["pid"][0] = vclock.PID
 		to_send["clock"] = vclock.Causal_time
 
 		// Marshal the map into a slice of bytes.
 		to_send_bytes, err := json.Marshal(to_send)
-		to_send_str := string(to_send_bytes)
-		to_send_str = fmt.Sprintf("%-256v", to_send_str)
-
 		CheckError(err)
+
+		size := 256 - len(to_send_bytes)
+		padding_bytes := make([]byte, size)
+
+		to_send_bytes = append(to_send_bytes, padding_bytes...)
+		to_send_bytes = to_send_bytes[:256] // just to ensure capacity is 256
+
+		// to_send_str := string(to_send_bytes)
+		// to_send_str = fmt.Sprintf("%-256v", to_send_str)
 
 		vclock.ClockMutex.Unlock()
 
@@ -222,7 +236,7 @@ func (vclock *Vector_Clock) CreateMessages(connxns []net.Conn) {
 
 		for i := 0; i < vclock.n_proc-1; i++ {
 
-			go vclock.SendMessage(connxns[i], to_send_str)
+			go vclock.SendMessage(connxns[i], to_send_bytes)
 
 		}
 

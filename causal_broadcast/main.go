@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"time"
@@ -15,6 +16,7 @@ func init() {
 	flag.IntVar(&n_proc, "n", 3, "number of processes (default 3)")
 	flag.Parse()
 
+	log.SetFlags(0) // Turn off timestamps in log output.
 	rand.Seed(time.Now().UnixNano())
 
 }
